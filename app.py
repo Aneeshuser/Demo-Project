@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 import re
 
 # the api key configuration
-
 GOOGLE_API_KEY = "AIzaSyCYRz0ocRgs1VK7VuhKmkMY8PeZKjrX3tM"
 client = genai.Client(api_key=GOOGLE_API_KEY)
 app = FastAPI()
@@ -27,8 +26,7 @@ def summarize_link(request: LinkRequest):
 
     try:
 
-        # Check the youtube URL 
-
+        # Check the youtube URL
         if "youtube.com" not in url and "youtu.be" not in url:
             raise HTTPException(status_code=400, detail="Only YouTube URLs are supported.")
 
@@ -39,18 +37,20 @@ def summarize_link(request: LinkRequest):
 
         try:
             # Fetch transcript with multi-language + auto-caption support
-
             langs = [
                 'en', 'en-US', 'en-GB', 'a.en',
                 'hi', 'es', 'fr', 'de', 'ja',
                 'ko', 'zh-Hans', 'ru', 'pt', 'it', 'ar'
             ]
-            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=langs)
+            transcript = YouTubeTranscriptApi.get_transcript(
+                video_id,
+                languages=langs,
+                cookies="cookies.txt"
+            )
             text_to_summarize = " ".join([entry['text'] for entry in transcript])
 
         except Exception:
-            # if the captions are off its looks the meta tags and gets the caption
-
+            # if captions are off, scrape the meta tags
             headers = {"User-Agent": "Mozilla/5.0"}
             yt_page = requests.get(url, headers=headers, timeout=10)
             yt_soup = BeautifulSoup(yt_page.text, 'html.parser')
@@ -70,7 +70,6 @@ def summarize_link(request: LinkRequest):
             text_to_summarize = f"Title: {title}\nDescription: {desc}"
 
         # If not enough readable text found to generate a summary
-
         text_to_summarize = text_to_summarize[:30000]
 
         if len(text_to_summarize) < 50:
@@ -80,8 +79,7 @@ def summarize_link(request: LinkRequest):
             )
 
         # the Prompt for the model
-
-        prompt = """. Analyze the following transcript and respond using EXACTLY these 4 section headings, in this order:
+        prompt = """You are an expert YouTube video summarizer. Analyze the following transcript and respond using EXACTLY these 4 section headings, in this order:
 
 ### 1. Short Summary
 Provide a 3-4 line high-level overview of what this video is about.
@@ -97,8 +95,8 @@ List specific lessons, advice, or actionable steps the viewer can apply in their
 
 Content to summarize:
 """
-       # whcih model to use 
-    
+
+        # which model to use
         gemini_response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt + "\n\n" + text_to_summarize
