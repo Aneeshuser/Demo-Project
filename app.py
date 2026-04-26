@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import re
 
 # the api key configuration
-GOOGLE_API_KEY = "AIzaSyCYRz0ocRgs1VK7VuhKmkMY8PeZKjrX3tM"
+GOOGLE_API_KEY = "Google_api_key"
 client = genai.Client(api_key=GOOGLE_API_KEY)
 app = FastAPI()
 
