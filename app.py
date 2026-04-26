@@ -6,9 +6,12 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import requests
 from bs4 import BeautifulSoup
 import re
+import os
 
 # the api key configuration
-GOOGLE_API_KEY = "Google_api_key"
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+COOKIE_PATH = os.environ.get("COOKIE_PATH", "cookies.txt")
+
 client = genai.Client(api_key=GOOGLE_API_KEY)
 app = FastAPI()
 
@@ -25,7 +28,6 @@ def summarize_link(request: LinkRequest):
     text_to_summarize = ""
 
     try:
-
         # Check the youtube URL
         if "youtube.com" not in url and "youtu.be" not in url:
             raise HTTPException(status_code=400, detail="Only YouTube URLs are supported.")
@@ -45,7 +47,7 @@ def summarize_link(request: LinkRequest):
             transcript = YouTubeTranscriptApi.get_transcript(
                 video_id,
                 languages=langs,
-                cookies="cookies.txt"
+                cookies=COOKIE_PATH
             )
             text_to_summarize = " ".join([entry['text'] for entry in transcript])
 
