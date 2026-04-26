@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from google import genai
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -38,18 +39,21 @@ def summarize_link(request: LinkRequest):
         video_id = video_id_match.group(1)
 
         try:
-            # Fetch transcript with multi-language + auto-caption support
+            # Fetch transcript using Webshare proxy
             langs = [
                 'en', 'en-US', 'en-GB', 'a.en',
                 'hi', 'es', 'fr', 'de', 'ja',
                 'ko', 'zh-Hans', 'ru', 'pt', 'it', 'ar'
             ]
-            transcript = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=langs,
-                cookies=COOKIE_PATH
+
+            proxy_config = WebshareProxyConfig(
+                proxy_username=os.environ.get("PROXY_USERNAME"),
+                proxy_password=os.environ.get("PROXY_PASSWORD"),
             )
-            text_to_summarize = " ".join([entry['text'] for entry in transcript])
+
+            ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
+            transcript = ytt_api.fetch(video_id, languages=langs)
+            text_to_summarize = " ".join([entry.text for entry in transcript])
 
         except Exception:
             # if captions are off, scrape the meta tags
